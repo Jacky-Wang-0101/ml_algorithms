@@ -126,12 +126,99 @@ def get_best_split(X, y):
                 best_split = {
                     "feature_index": feature_index,
                     "threshold": threshold,
-                    "gain": gain
+                    "gain": gain,
+                    "X_left": X_L,
+                    "y_left": y_L,
+                    "X_right": X_R,
+                    "y_right": y_R
                 }
                 max_gain = gain
                 
     return best_split
 
+
+class DecisionTree:
+    def __init__(self, min_samples_split = 2, max_depth = 100):
+        '''
+        Decision Tree Classifier.
+        - min_samples_split: If a node has fewer samples than this, stop splitting. (Prevent Overfitting!)
+        - max_depth: The maximum depth of the tree. (Prevent Overfitting!)
+        '''
+        self.root = None
+        self.min_samples_split = min_samples_split
+        self.max_depth = max_depth
+
+    def build_tree(self, X, y, depth = 0):
+        '''
+        Recursive function to build the tree.
+        '''
+        num_samples, num_features = X.shape
+        num_labels = len(np.unique(y))
+
+        # 1. Stopping Criteria (When to stop?)
+        # - Too deep (depth > max_depth)
+        # - Too less people (num_samples < min_samples_split)
+        # - Already pure (num_labels == 1)
+        if (depth >= self.max_depth or num_labels == 1 or num_samples < self.min_samples_split):
+            leaf_value = self._calculate_leaf_value(y)
+            return Node(value=leaf_value) # Return a Leaf Node (Answer)
+        
+        # 2. Find the best split
+        best_split = get_best_split(X, y)
+
+        # 3. If gain is positive (useful split), keep building!
+        if best_split.get("gain", 0) > 0:
+            # Recursion: Build Left Subtree
+            left_subtree = self.build_tree(best_split["X_left"], best_split["y_left"], depth + 1)
+            
+            # Recursion: Build Right Subtree
+            right_subtree = self.build_tree(best_split["X_right"], best_split["y_right"], depth + 1)
+            
+            # Return a Decision Node
+            return Node(feature_index=best_split["feature_index"], 
+                        threshold=best_split["threshold"], 
+                        left=left_subtree, 
+                        right=right_subtree)
+        # 4. If gain is 0 (can't improve), tuen into leaf
+        leaf_value = self._calculate_leaf_value(y)
+        return Node(value=leaf_value)
+    
+    def _calculate_leaf_value(self, y):
+        '''
+        Helper: Find the most common label in the list y.
+        e.g., [1, 1, 1, 0] -> Returns 1
+        '''
+        Y = list(y)
+        return max(Y, key=Y.count)
+    
+    def fit(self, X, y):
+        '''
+        Start training the tree.
+        '''
+        # Note: We added the "X_left" and "X_right" to best_split dictionary in previous step conceptually,
+        # But we need to make sure get_best_split actually returns the data subsets.
+        # Let's assume get_best_split is updated or we handle it here.
+        # actually, let's keep it simple. We need to update get_best_split slightly to return X_L, y_L...
+        # Wait, to make it easier for you, I will ask you to update get_best_split slightly below.
+        
+        self.root = self.build_tree(X, y)
+
+    def print_tree(self, tree=None, indent=" "):
+        '''
+        Visualizer: Print the tree structure.
+        '''
+        if not tree:
+            tree = self.root
+        
+        if tree.value is not None:
+            print(tree.value)
+        
+        else:
+            print("X_" + str(tree.feature_index), "<=", tree.threshold, "?")
+            print("%sleft:" % (indent), end="")
+            self.print_tree(tree.left, indent + indent)
+            print("%sright:" % (indent), end="")
+            self.print_tree(tree.right, indent + indent)
 
 # --- Test Zone ---
 if __name__ == "__main__":
@@ -144,10 +231,9 @@ if __name__ == "__main__":
     ])
     y_fake = np.array([0, 0, 1, 1]) 
     
-    print("--- AI Searching for Best Split ---")
-    best_node = get_best_split(X_fake, y_fake)
-
-    print("Best Split Found:")
-    print(f"Feature Index: {best_node['feature_index']} (0 is Height, 1 is Weight)")
-    print(f"Threshold: {best_node['threshold']}")
-    print(f"Gain: {best_node['gain']}")
+    print("\n--- Building the Full Tree ---")
+    classifier = DecisionTree(min_samples_split=2, max_depth=3)
+    classifier.fit(X_fake, y_fake)
+    
+    print("Tree Structure:")
+    classifier.print_tree()
