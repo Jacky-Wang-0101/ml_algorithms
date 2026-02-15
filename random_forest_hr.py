@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
@@ -78,3 +79,13 @@ indices = np.argsort(importances)[::-1]
 print("\n--- Key Drivers of Employee Churn ---")
 for i in range(len(indices)):
     print(f"{i+1}. {feature_names[indices[i]]}: {importances[indices[i]]:.4f}")
+
+# --- 6. Save the Model (For Future Use) ---
+print("--- Saving Model ---")
+filename = 'model_hr.pkl'
+
+# We use "pickle" to save the trained model to disk.
+with open(filename, 'wb') as file:
+    pickle.dump(model, file)
+
+print(f"Model saved successfully as {filename}!")
