@@ -9,15 +9,15 @@ import os
 app = FastAPI()
 
 # Load the trained model
-# Ensure 'model_hr.pkl' is in the same directory, or this will fail.
-model_path = 'model_hr.pkl'
+# Ensure 'model_xgboost.pkl' is in the same directory, or this will fail.
+model_path = 'model_xgboost.pkl'
 
 if os.path.exists(model_path):
     with open(model_path, 'rb') as f:
         model = pickle.load(f)
     print("✅ Model loaded successfully!")
 else:
-    print("❌ Error: model_hr.pkl not found. Please run random_forest_hr.py first.")
+    print("❌ Error: model_xgboost.pkl not found. Please run train_xgboost.py first.")
     model = None
 
 # --- 2. Define Input Data Schema ---
@@ -88,12 +88,14 @@ def predict_churn(employee: EmployeeData):
 
     # D. Make Prediction
     try:
-        # predict() returns an array like [1] or [0]
-        prediction = model.predict(input_data)[0]
+        # 1. Get intial numpy types from model prediction
+        raw_prediction = model.predict(input_data)[0]
+        raw_probability = model.predict_proba(input_data)[0][1]
 
-        # predict_proba() returns probabilities like [[0.2, 0.8]]
-        # We want the probability of class 1 (leaving)
-        probability = model.predict_proba(input_data)[0][1]
+        # 2. 【Important】Convert numpy types to native Python types
+        # This is crucial for JSON serialization. FastAPI will throw an error if we return numpy types.
+        prediction = int(raw_prediction)
+        probability = float(raw_probability)
 
         result = {
             "prediction": "Left" if prediction == 1 else "Stayed",
